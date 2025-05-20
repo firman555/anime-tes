@@ -6,6 +6,7 @@ from sklearn.neighbors import NearestNeighbors
 from scipy.sparse import csr_matrix
 import requests
 from deep_translator import GoogleTranslator
+import re
 
 # ================================
 # KONFIGURASI STREAMLIT
@@ -13,6 +14,12 @@ from deep_translator import GoogleTranslator
 st.set_page_config(page_title="🍜 Sistem Rekomendasi Anime", layout="wide")
 st.markdown("<h1 style='text-align: center;'>🍜 Sistem Rekomendasi Anime</h1>", unsafe_allow_html=True)
 st.caption("Powered by K-Nearest Neighbors, Jikan API & Google Drive")
+
+# ================================
+# BERSIHKAN NAMA ANIME
+# ================================
+def clean_title(title):
+    return re.sub(r'[^\w\s]', '', title)
 
 # ================================
 # AMBIL CSV DARI GOOGLE DRIVE
@@ -70,7 +77,8 @@ def get_recommendations(title, matrix, model, n=5):
 # ================================
 def get_anime_details(anime_title):
     try:
-        response = requests.get("https://api.jikan.moe/v4/anime", params={"q": anime_title, "limit": 1}, timeout=10)
+        cleaned_title = clean_title(anime_title)
+        response = requests.get("https://api.jikan.moe/v4/anime", params={"q": cleaned_title, "limit": 1}, timeout=10)
         if response.status_code == 200 and response.json()["data"]:
             data = response.json()["data"][0]
             image = data["images"]["jpg"].get("image_url", "")
@@ -115,7 +123,7 @@ for i, row in enumerate(top5_df.itertuples()):
         if image_url:
             st.image(image_url, caption=row.name, use_container_width=True)
         else:
-            st.warning("Gambar tidak tersedia.")
+            st.markdown("🖼️ **Gambar tidak tersedia.**")
         st.markdown(f"⭐ **Rating:** `{row.avg_rating:.2f}`")
         st.markdown(f"👥 **Jumlah Rating:** `{row.num_ratings}`")
 
@@ -141,7 +149,7 @@ if st.button("🔍 Tampilkan Rekomendasi"):
             if image_url:
                 st.image(image_url, caption=rec_title, use_container_width=True)
             else:
-                st.warning("Gambar tidak tersedia.")
+                st.markdown("🖼️ **Gambar tidak tersedia.**")
             st.markdown(f"*Genre:* {genres}")
             st.markdown(f"🔗 Kemiripan: `{similarity:.2f}`")
             with st.expander("📓 Lihat Sinopsis"):
@@ -160,4 +168,4 @@ if st.session_state.history:
             if image_url:
                 st.image(image_url, caption=title, use_container_width=True)
             else:
-                st.warning("Gambar tidak tersedia.")
+                st.markdown("🖼️ **Gambar tidak tersedia.**")
