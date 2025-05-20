@@ -1,4 +1,69 @@
-# ... (imports & setup sama seperti sebelumnya)
+import streamlit as st
+import pandas as pd
+import os
+import gdown
+from sklearn.neighbors import NearestNeighbors
+from scipy.sparse import csr_matrix
+import requests
+from deep_translator import GoogleTranslator
+import re
+import time
+
+# ================================
+# KONFIGURASI
+# ================================
+st.set_page_config(page_title="🍜 Sistem Rekomendasi Anime", layout="wide")
+st.markdown("<h1 style='text-align: center;'>🍜 Sistem Rekomendasi Anime</h1>", unsafe_allow_html=True)
+st.caption("Powered by K-Nearest Neighbors, Jikan API & Google Drive")
+
+AVAILABLE_GENRES = [
+    "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Mystery",
+    "Romance", "Sci-Fi", "Slice of Life", "Supernatural", "Sports", "Thriller"
+]
+
+# ================================
+# DOWNLOAD DATA
+# ================================
+@st.cache_data
+def download_and_load_csv(file_id, filename):
+    output = f"/tmp/{filename}"
+    if not os.path.exists(output):
+        gdown.download(f"https://drive.google.com/uc?id={file_id}", output, quiet=False)
+    return pd.read_csv(output)
+
+@st.cache_data
+def load_data():
+    anime_file_id = "1rKuccpP1bsiRxozgHZAaruTeDUidRwcz"
+    rating_file_id = "1bSK2RJN23du0LR1K5HdCGsp8bWckVWQn"
+    anime = download_and_load_csv(anime_file_id, "anime.csv")[["anime_id", "name"]].dropna().drop_duplicates(subset="name")
+    ratings = download_and_load_csv(rating_file_id, "rating.csv")
+    ratings = ratings[ratings["rating"] > 0]
+    data = ratings.merge(anime, on="anime_id")
+    return anime, data
+
+# ================================
+# MATRIX & MODEL
+# ================================
+@st.cache_data
+def prepare_matrix(data, num_users=1500, num_anime=1200):
+    top_users = data['user_id'].value_counts().head(num_users).index
+    top_anime = data['name'].value_counts().head(num_anime).index
+    filtered = data[data['user_id'].isin(top_users) & data['name'].isin(top_anime)]
+    matrix = filtered.pivot_table(index='name', columns='user_id', values='rating').fillna(0)
+    return matrix.astype('float32')
+
+@st.cache_resource
+def train_model(matrix):
+    model = NearestNeighbors(metric='cosine', algorithm='brute')
+    model.fit(csr_matrix(matrix.values))
+    return model
+
+def get_recommendations(title, matrix, model, n=5):
+    if title not in matrix.index:
+        return []
+    idx = matrix.index.get_loc(title)
+    dists, idxs = model.kneighbors(matrix.iloc[idx, :].values.reshape(1, -1), n_neighbors=n+1)
+    return [(matrix.index[i], 1 - dists.flatten()[j]) for j, i in enumerate(idxs.flatten()[1:])]
 
 # ================================
 # JIKAN API: Tambahan Type & Episodes
