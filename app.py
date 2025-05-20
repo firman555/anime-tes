@@ -7,6 +7,7 @@ from scipy.sparse import csr_matrix
 import requests
 from deep_translator import GoogleTranslator
 import re
+import time
 
 # ================================
 # KONFIGURASI STREAMLIT
@@ -14,12 +15,6 @@ import re
 st.set_page_config(page_title="🍜 Sistem Rekomendasi Anime", layout="wide")
 st.markdown("<h1 style='text-align: center;'>🍜 Sistem Rekomendasi Anime</h1>", unsafe_allow_html=True)
 st.caption("Powered by K-Nearest Neighbors, Jikan API & Google Drive")
-
-# ================================
-# BERSIHKAN NAMA ANIME
-# ================================
-def clean_title(title):
-    return re.sub(r'[^\w\s]', '', title)
 
 # ================================
 # AMBIL CSV DARI GOOGLE DRIVE
@@ -49,7 +44,7 @@ def load_data():
 # SIAPKAN MATRIX
 # ================================
 @st.cache_data
-def prepare_matrix(data, num_users=800, num_anime=500):
+def prepare_matrix(data, num_users=800, num_anime=400):
     top_users = data['user_id'].value_counts().head(num_users).index
     top_anime = data['name'].value_counts().head(num_anime).index
     filtered = data[data['user_id'].isin(top_users) & data['name'].isin(top_anime)]
@@ -73,10 +68,12 @@ def get_recommendations(title, matrix, model, n=5):
     return [(matrix.index[i], 1 - dists.flatten()[j]) for j, i in enumerate(idxs.flatten()[1:])]
 
 # ================================
-# API JIKAN
+# API JIKAN DENGAN CACHING
 # ================================
-def get_anime_details_by_id(anime_id):
+@st.cache_data(show_spinner=False)
+def get_anime_details_cached(anime_id):
     try:
+        time.sleep(0.3)  # Hindari rate limit
         response = requests.get(f"https://api.jikan.moe/v4/anime/{anime_id}", timeout=10)
         if response.status_code == 200 and response.json()["data"]:
             data = response.json()["data"]
@@ -86,14 +83,7 @@ def get_anime_details_by_id(anime_id):
             synopsis_id = GoogleTranslator(source='auto', target='id').translate(synopsis_en)
             return image, synopsis_id, genres
     except Exception as e:
-        print(f"[ERROR Jikan API by ID] {anime_id}: {e}")
-    return "", "Sinopsis tidak tersedia.", "-"
-
-def get_anime_details(anime_title, anime_id=None):
-    if anime_id:
-        image, synopsis, genres = get_anime_details_by_id(anime_id)
-        if image:
-            return image, synopsis, genres
+        print(f"[ERROR] ID {anime_id}: {e}")
     return "", "Sinopsis tidak tersedia.", "-"
 
 # ================================
@@ -109,7 +99,7 @@ def get_top_5_anime(data):
     return top_anime
 
 # ================================
-# LOAD DATA
+# LOAD DATA & MODEL
 # ================================
 with st.spinner("🔄 Memuat data..."):
     anime, data = load_data()
@@ -122,18 +112,19 @@ with st.spinner("🔄 Memuat data..."):
 # ================================
 st.subheader("🏆 Top 5 Anime Berdasarkan Rating")
 top5_df = get_top_5_anime(data)
-
 cols = st.columns(5)
+
 for i, row in enumerate(top5_df.itertuples()):
     with cols[i]:
         anime_id = anime_id_map.get(row.name)
-        if not anime_id:
-            st.markdown(f"❌ `{row.name}` tidak memiliki ID.")
-        image_url, _, _ = get_anime_details(row.name, anime_id)
-        if image_url:
-            st.image(image_url, caption=row.name, use_container_width=True)
-        else:
-            st.image("https://via.placeholder.com/200x300?text=No+Image", caption=row.name, use_container_width=True)
+        image_url, _, _ = get_anime_details_cached(anime_id) if anime_id else ("", "", "-")
+        try:
+            if image_url:
+                st.image(image_url, caption=row.name, use_container_width=True)
+            else:
+                st.image("https://via.placeholder.com/200x300?text=No+Image", caption=row.name, use_container_width=True)
+        except:
+            st.image("https://via.placeholder.com/200x300?text=Load+Error", caption=row.name, use_container_width=True)
         st.markdown(f"⭐ **Rating:** `{row.avg_rating:.2f}`")
         st.markdown(f"👥 **Jumlah Rating:** `{row.num_ratings}`")
 
@@ -156,13 +147,14 @@ if st.button("🔍 Tampilkan Rekomendasi"):
     for i, (rec_title, similarity) in enumerate(rekomendasi):
         with cols[i % 5]:
             anime_id = anime_id_map.get(rec_title)
-            if not anime_id:
-                st.markdown(f"❌ `{rec_title}` tidak memiliki ID.")
-            image_url, synopsis, genres = get_anime_details(rec_title, anime_id)
-            if image_url:
-                st.image(image_url, caption=rec_title, use_container_width=True)
-            else:
-                st.image("https://via.placeholder.com/200x300?text=No+Image", caption=rec_title, use_container_width=True)
+            image_url, synopsis, genres = get_anime_details_cached(anime_id) if anime_id else ("", "", "-")
+            try:
+                if image_url:
+                    st.image(image_url, caption=rec_title, use_container_width=True)
+                else:
+                    st.image("https://via.placeholder.com/200x300?text=No+Image", caption=rec_title, use_container_width=True)
+            except:
+                st.image("https://via.placeholder.com/200x300?text=Load+Error", caption=rec_title, use_container_width=True)
             st.markdown(f"*Genre:* {genres}")
             st.markdown(f"🔗 Kemiripan: `{similarity:.2f}`")
             with st.expander("📓 Lihat Sinopsis"):
@@ -178,10 +170,11 @@ if st.session_state.history:
     for i, title in enumerate(reversed(history)):
         with cols[i]:
             anime_id = anime_id_map.get(title)
-            if not anime_id:
-                st.markdown(f"❌ `{title}` tidak memiliki ID.")
-            image_url, _, _ = get_anime_details(title, anime_id)
-            if image_url:
-                st.image(image_url, caption=title, use_container_width=True)
-            else:
-                st.image("https://via.placeholder.com/200x300?text=No+Image", caption=title, use_container_width=True)
+            image_url, _, _ = get_anime_details_cached(anime_id) if anime_id else ("", "", "-")
+            try:
+                if image_url:
+                    st.image(image_url, caption=title, use_container_width=True)
+                else:
+                    st.image("https://via.placeholder.com/200x300?text=No+Image", caption=title, use_container_width=True)
+            except:
+                st.image("https://via.placeholder.com/200x300?text=Load+Error", caption=title, use_container_width=True)
