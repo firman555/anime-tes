@@ -1,3 +1,5 @@
+
+
 import streamlit as st
 import pandas as pd
 import os
@@ -151,13 +153,15 @@ if st.button("🌟 Tampilkan Anime Genre Ini"):
         genres = get_genres_by_id(row.anime_id)
         if selected_genre in genres:
             results.append((row.anime_id, row.avg_rating, row.num_ratings))
-        if len(results) >= 5:
+        if len(results) >= 10:
             break
 
     if results:
-        cols = st.columns(len(results))
+        col_rows = [st.columns(5), st.columns(5)]
         for i, (anime_id, rating, num_votes) in enumerate(results):
-            with cols[i]:
+            row = 0 if i < 5 else 1
+            col = col_rows[row][i % 5]
+            with col:
                 name = anime[anime['anime_id'] == anime_id]['name'].values[0]
                 image_url, _, _, type_, episodes = get_anime_details_cached(anime_id)
                 st.image(image_url if image_url else "https://via.placeholder.com/200x300?text=No+Image", caption=name, use_container_width=True)
@@ -180,12 +184,14 @@ if "history" not in st.session_state:
 
 if st.button("🔍 Tampilkan Rekomendasi"):
     st.session_state.history.append(selected_anime)
-    rekomendasi = get_recommendations(selected_anime, matrix, model, n=5)
+    rekomendasi = get_recommendations(selected_anime, matrix, model, n=10)  # Ubah jumlah rekomendasi jadi 10
 
     st.subheader(f"✨ Rekomendasi berdasarkan: {selected_anime}")
-    cols = st.columns(5)
+    col_rows = [st.columns(5), st.columns(5)]  # Dua baris, masing-masing 5 kolom
     for i, (rec_title, similarity) in enumerate(rekomendasi):
-        with cols[i % 5]:
+        row = 0 if i < 5 else 1
+        col = col_rows[row][i % 5]
+        with col:
             anime_id = anime_id_map.get(rec_title)
             image_url, synopsis, genres, type_, episodes = get_anime_details_cached(anime_id) if anime_id else ("", "", "-", "-", "?")
             st.image(image_url if image_url else "https://via.placeholder.com/200x300?text=No+Image", caption=rec_title, use_container_width=True)
