@@ -29,8 +29,8 @@ def download_and_load_csv(file_id, filename):
 # ================================
 @st.cache_data
 def load_data():
-    anime_file_id = "1rKuccpP1bsiRxozgHZAaruTeDUidRwcz"   # ganti dengan file ID anime.csv
-    rating_file_id = "1bSK2RJN23du0LR1K5HdCGsp8bWckVWQn"  # ganti dengan file ID rating.csv
+    anime_file_id = "1rKuccpP1bsiRxozgHZAaruTeDUidRwcz"
+    rating_file_id = "1bSK2RJN23du0LR1K5HdCGsp8bWckVWQn"
 
     anime = download_and_load_csv(anime_file_id, "anime.csv")[["anime_id", "name"]].dropna().drop_duplicates("anime_id")
     ratings = download_and_load_csv(rating_file_id, "rating.csv")
@@ -70,7 +70,7 @@ def get_recommendations(title, matrix, model, n=5):
 # ================================
 def get_anime_details(anime_title):
     try:
-        response = requests.get("https://api.jikan.moe/v4/anime", params={"q": anime_title, "limit": 1})
+        response = requests.get("https://api.jikan.moe/v4/anime", params={"q": anime_title, "limit": 1}, timeout=10)
         if response.status_code == 200 and response.json()["data"]:
             data = response.json()["data"][0]
             image = data["images"]["jpg"].get("image_url", "")
@@ -78,8 +78,8 @@ def get_anime_details(anime_title):
             genres = ", ".join([g["name"] for g in data.get("genres", [])])
             synopsis_id = GoogleTranslator(source='auto', target='id').translate(synopsis_en)
             return image, synopsis_id, genres
-    except:
-        pass
+    except Exception as e:
+        print(f"[ERROR Jikan API] {anime_title}: {e}")
     return "", "Sinopsis tidak tersedia.", "-"
 
 # ================================
@@ -108,13 +108,14 @@ with st.spinner("🔄 Memuat data..."):
 st.subheader("🏆 Top 5 Anime Berdasarkan Rating")
 top5_df = get_top_5_anime(data)
 
-# Buat kolom sebanyak jumlah top 5
 cols = st.columns(5)
-
 for i, row in enumerate(top5_df.itertuples()):
     with cols[i]:
         image_url, _, _ = get_anime_details(row.name)
-        st.image(image_url, caption=row.name, use_container_width=True)
+        if image_url:
+            st.image(image_url, caption=row.name, use_container_width=True)
+        else:
+            st.warning("Gambar tidak tersedia.")
         st.markdown(f"⭐ **Rating:** `{row.avg_rating:.2f}`")
         st.markdown(f"👥 **Jumlah Rating:** `{row.num_ratings}`")
 
@@ -137,7 +138,10 @@ if st.button("🔍 Tampilkan Rekomendasi"):
     for i, (rec_title, similarity) in enumerate(rekomendasi):
         with cols[i % 5]:
             image_url, synopsis, genres = get_anime_details(rec_title)
-            st.image(image_url, caption=rec_title, use_container_width=True)
+            if image_url:
+                st.image(image_url, caption=rec_title, use_container_width=True)
+            else:
+                st.warning("Gambar tidak tersedia.")
             st.markdown(f"*Genre:* {genres}")
             st.markdown(f"🔗 Kemiripan: `{similarity:.2f}`")
             with st.expander("📓 Lihat Sinopsis"):
@@ -153,4 +157,7 @@ if st.session_state.history:
     for i, title in enumerate(reversed(history)):
         with cols[i]:
             image_url, _, _ = get_anime_details(title)
-            st.image(image_url, caption=title, use_container_width=True)
+            if image_url:
+                st.image(image_url, caption=title, use_container_width=True)
+            else:
+                st.warning("Gambar tidak tersedia.")
