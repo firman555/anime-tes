@@ -49,7 +49,7 @@ def load_data():
 # SIAPKAN MATRIX
 # ================================
 @st.cache_data
-def prepare_matrix(data, num_users=7000, num_anime=5000):
+def prepare_matrix(data, num_users=800, num_anime=500):
     top_users = data['user_id'].value_counts().head(num_users).index
     top_anime = data['name'].value_counts().head(num_anime).index
     filtered = data[data['user_id'].isin(top_users) & data['name'].isin(top_anime)]
