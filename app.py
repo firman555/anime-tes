@@ -228,8 +228,15 @@ if st.session_state.history:
     if st.button("🧹 Hapus Riwayat"):
         st.session_state.history = []
 
-# pencarian manual
+# ================================
+# PENCARIAN MANUAL ANIME
+# ================================
+st.markdown("## 🔍 Cari Anime Manual")
+
+search_query = st.text_input("Ketik nama anime:")
+
 if search_query:
+    matching_titles = [title for title in anime["name"] if search_query.lower() in title.lower()]
     if matching_titles:
         selected_title = st.selectbox("Pilih anime yang dimaksud:", matching_titles)
         anime_id = anime_id_map.get(selected_title)
@@ -244,3 +251,4 @@ if search_query:
                 st.markdown(synopsis)
     else:
         st.warning("Anime tidak ditemukan.")
+
