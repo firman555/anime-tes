@@ -9,6 +9,7 @@ import requests
 from deep_translator import GoogleTranslator
 import re
 import time
+from rapidfuzz import process
 
 st.set_page_config(page_title="🍜 Sistem Rekomendasi Anime", layout="wide")
 st.markdown("<h1 style='text-align: center;'>🍜 Sistem Rekomendasi Anime</h1>", unsafe_allow_html=True)
