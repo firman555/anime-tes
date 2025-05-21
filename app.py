@@ -133,6 +133,8 @@ search_query = st.text_input("Ketik nama anime:")
 if search_query:
     matches = process.extract(search_query, anime["name"].tolist(), limit=10, score_cutoff=60)
     matching_titles = [match[0] for match in matches]
+
+    if matching_titles:
         selected_title = st.selectbox("Pilih anime yang dimaksud:", matching_titles)
         anime_id = anime_id_map.get(selected_title)
         if anime_id:
@@ -149,8 +151,8 @@ if search_query:
             """, unsafe_allow_html=True)
             with st.expander("📓 Sinopsis"):
                 st.markdown(synopsis)
-    else:
-        st.warning("Anime tidak ditemukan.")
+      else:
+        st.warning("Tidak ditemukan anime yang cocok.")
 
 # LEADERBOARD TOP 5
 
