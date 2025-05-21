@@ -123,6 +123,7 @@ with st.spinner("🔄 Memuat data..."):
     model = train_model(matrix)
     anime_id_map = dict(zip(anime['name'], anime['anime_id']))
 
+# PENCARIAN MANUAL
 
 st.markdown("## 🔍 Cari Anime Manual")
 
@@ -135,16 +136,22 @@ if search_query:
         anime_id = anime_id_map.get(selected_title)
         if anime_id:
             image_url, synopsis, genres, type_, episodes, year = get_anime_details_cached(anime_id)
-            tampilkan_gambar_anime(image_url, selected_title)
-            st.markdown(f"**🎮 Tipe:** `{type_}`")
-            st.markdown(f"**📺 Total Episode:** `{episodes}`")
-            st.markdown(f"**🗓️ Tahun Rilis:** `{year}`")
-            st.markdown(f"**🎭 Genre:** {genres}")
+            st.markdown("""
+                <div style='text-align: center;'>
+                    <img src='{image_url if image_url else "https://via.placeholder.com/200x300?text=No+Image"}'
+                         style='height: 300px; object-fit: cover; border-radius: 10px;'>
+                    <p style='margin-top: 10px; font-size: 18px;'><strong>Tipe:</strong> {type_}</p>
+                    <p style='font-size: 18px;'><strong>📺 Total Episode:</strong> {episodes}</p>
+                    <p style='font-size: 18px;'><strong>🗓️ Tahun Rilis:</strong> {year}</p>
+                    <p style='font-size: 18px;'><strong>🎭 Genre:</strong> {genres}</p>
+                </div>
+            """, unsafe_allow_html=True)
             with st.expander("📓 Sinopsis"):
                 st.markdown(synopsis)
     else:
         st.warning("Anime tidak ditemukan.")
 
+# LEADERBOARD TOP 5
 
 st.subheader("🏆 Top 5 Anime Berdasarkan Rating")
 top5_df = get_top_5_anime(data)
@@ -161,9 +168,9 @@ for i, row in enumerate(top5_df.itertuples()):
         st.markdown(f"📺 **Total Episode:** `{episodes}`")
         st.markdown(f"🗓️ **Tahun Rilis:** `{year}`")
         
-# ================================
+
 # REKOMENDASI BERDASARKAN GENRE
-# ================================
+
 
 st.markdown("## 🎬 Rekomendasi Berdasarkan Genre")
 selected_genre = st.selectbox("Pilih genre favoritmu:", AVAILABLE_GENRES)
