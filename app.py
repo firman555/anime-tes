@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import os
@@ -84,14 +83,11 @@ def get_anime_details_cached(anime_id):
             episodes = data.get("episodes", "?")
             aired_from = data.get("aired", {}).get("from", None)
             year = "-"
-            aired_from = data.get("aired", {}).get("from", None)
-            year = "-"
             if aired_from:
                 try:
                     year = pd.to_datetime(aired_from).year
                 except:
                     pass
-
             return image, synopsis_id, genres, type_, episodes, year
     except Exception as e:
         print(f"[ERROR] ID {anime_id}: {e}")
@@ -137,93 +133,24 @@ for i, row in enumerate(top5_df.itertuples()):
         st.markdown(f"🎮 **Tipe:** `{type_}`")
         st.markdown(f"📺 **Total Episode:** `{episodes}`")
         st.markdown(f"🗓️ **Tahun Rilis:** `{year}`")
-        
-# ================================
-# REKOMENDASI BERDASARKAN GENRE
-# ================================
 
-st.markdown("## 🎬 Rekomendasi Berdasarkan Genre")
-selected_genre = st.selectbox("Pilih genre favoritmu:", AVAILABLE_GENRES)
+st.markdown("## 🔍 Cari Anime Manual")
 
-if st.button("🌟 Tampilkan Anime Genre Ini"):
-    st.subheader(f"📚 Rekomendasi Anime dengan Genre: {selected_genre}")
-    anime_ratings = data.groupby("anime_id").agg(
-        avg_rating=("rating", "mean"),
-        num_ratings=("rating", "count")
-    ).reset_index()
-    top_candidates = anime_ratings[anime_ratings["num_ratings"] > 10].sort_values(by="avg_rating", ascending=False)
+search_query = st.text_input("Ketik nama anime:")
 
-    results = []
-    for row in top_candidates.itertuples():
-        genres = get_genres_by_id(row.anime_id)
-        if selected_genre in genres:
-            results.append((row.anime_id, row.avg_rating, row.num_ratings))
-        if len(results) >= 10:
-            break
-
-    if results:
-        col_rows = [st.columns(5), st.columns(5)]
-        for i, (anime_id, rating, num_votes) in enumerate(results):
-            row = 0 if i < 5 else 1
-            col = col_rows[row][i % 5]
-            with col:
-                name = anime[anime['anime_id'] == anime_id]['name'].values[0]
-                image_url, synopsis, _, type_, episodes, year = get_anime_details_cached(anime_id)
-                tampilkan_gambar_anime(image_url, name)
-                st.markdown(f"⭐ Rating: `{rating:.2f}`")
-                st.markdown(f"👥 Jumlah Rating: `{num_votes}`")
-                st.markdown(f"🎮 Tipe: `{type_}`")
-                st.markdown(f"📺 Total Episode: `{episodes}`")
-                st.markdown(f"🗓️ Tahun Rilis: `{year}`")
-                with st.expander("📓 Lihat Sinopsis"):
-                    st.markdown(synopsis)
-    else:
-        st.info("Tidak ada anime ditemukan untuk genre ini.")
-
-st.markdown("## 🎮 Pilih Anime Favorit Kamu")
-anime_list = list(matrix.index)
-selected_anime = st.selectbox("Pilih anime yang kamu suka:", anime_list)
-
-if "history" not in st.session_state:
-    st.session_state.history = []
-
-if st.button("🔍 Tampilkan Rekomendasi"):
-    st.session_state.history.append(selected_anime)
-    rekomendasi = get_recommendations(selected_anime, matrix, model, n=10)
-
-    st.subheader(f"✨ Rekomendasi berdasarkan: {selected_anime}")
-    col_rows = [st.columns(5), st.columns(5)]
-    for i, (rec_title, similarity) in enumerate(rekomendasi):
-        row = 0 if i < 5 else 1
-        col = col_rows[row][i % 5]
-        with col:
-            anime_id = anime_id_map.get(rec_title)
-            image_url, synopsis, genres, type_, episodes, year = get_anime_details_cached(anime_id) if anime_id else ("", "", "-", "-", "?", "-")
-            tampilkan_gambar_anime(image_url, rec_title)
-            st.markdown(f"*Genre:* {genres}")
-            st.markdown(f"🎮 Tipe: `{type_}`")
-            st.markdown(f"📺 Total Episode: `{episodes}`")
-            st.markdown(f"🗓️ Tahun Rilis: `{year}`")
-            st.markdown(f"🔗 Kemiripan: `{similarity:.2f}`")
-            with st.expander("📓 Lihat Sinopsis"):
+if search_query:
+    matching_titles = [title for title in anime["name"] if search_query.lower() in title.lower()]
+    if matching_titles:
+        selected_title = st.selectbox("Pilih anime yang dimaksud:", matching_titles)
+        anime_id = anime_id_map.get(selected_title)
+        if anime_id:
+            image_url, synopsis, genres, type_, episodes, year = get_anime_details_cached(anime_id)
+            tampilkan_gambar_anime(image_url, selected_title)
+            st.markdown(f"**🎮 Tipe:** `{type_}`")
+            st.markdown(f"**📺 Total Episode:** `{episodes}`")
+            st.markdown(f"**🗓️ Tahun Rilis:** `{year}`")
+            st.markdown(f"**🎭 Genre:** {genres}")
+            with st.expander("📓 Sinopsis"):
                 st.markdown(synopsis)
-
-# ================================
-# RIWAYAT
-# ================================
-if st.session_state.history:
-    st.markdown("### 🕒 Riwayat Anime yang Kamu Pilih:")
-    history = st.session_state.history[-5:]
-    cols = st.columns(5)
-    for i, title in enumerate(reversed(history)):
-        col = cols[i % 5]
-        with col:
-            anime_id = anime_id_map.get(title)
-            image_url, _, _, type_, episodes, year = get_anime_details_cached(anime_id) if anime_id else ("", "", "-", "-", "?", "-")
-            tampilkan_gambar_anime(image_url, title)
-            st.markdown(f"🎮 Tipe: `{type_}`")
-            st.markdown(f"📺 Total Episode: `{episodes}`")
-            st.markdown(f"🗓️ Tahun Rilis: `{year}`")
-
-    if st.button("🧹 Hapus Riwayat"):
-        st.session_state.history = []
+    else:
+        st.warning("Anime tidak ditemukan.")
