@@ -123,6 +123,33 @@ with st.spinner("🔄 Memuat data..."):
     model = train_model(matrix)
     anime_id_map = dict(zip(anime['name'], anime['anime_id']))
 
+(kode sebelum leaderboard tetap sama)
+
+# ================================
+# PENCARIAN MANUAL ANIME (PINDAH KE ATAS)
+# ================================
+st.markdown("## 🔍 Cari Anime Manual")
+
+search_query = st.text_input("Ketik nama anime:")
+
+if search_query:
+    matching_titles = [title for title in anime["name"] if search_query.lower() in title.lower()]
+    if matching_titles:
+        selected_title = st.selectbox("Pilih anime yang dimaksud:", matching_titles)
+        anime_id = anime_id_map.get(selected_title)
+        if anime_id:
+            image_url, synopsis, genres, type_, episodes, year = get_anime_details_cached(anime_id)
+            tampilkan_gambar_anime(image_url, selected_title)
+            st.markdown(f"**🎮 Tipe:** `{type_}`")
+            st.markdown(f"**📺 Total Episode:** `{episodes}`")
+            st.markdown(f"**🗓️ Tahun Rilis:** `{year}`")
+            st.markdown(f"**🎭 Genre:** {genres}")
+            with st.expander("📓 Sinopsis"):
+                st.markdown(synopsis)
+    else:
+        st.warning("Anime tidak ditemukan.")
+
+
 st.subheader("🏆 Top 5 Anime Berdasarkan Rating")
 top5_df = get_top_5_anime(data)
 cols = st.columns(5)
@@ -227,28 +254,4 @@ if st.session_state.history:
 
     if st.button("🧹 Hapus Riwayat"):
         st.session_state.history = []
-
-# ================================
-# PENCARIAN MANUAL ANIME
-# ================================
-st.markdown("## 🔍 Cari Anime Manual")
-
-search_query = st.text_input("Ketik nama anime:")
-
-if search_query:
-    matching_titles = [title for title in anime["name"] if search_query.lower() in title.lower()]
-    if matching_titles:
-        selected_title = st.selectbox("Pilih anime yang dimaksud:", matching_titles)
-        anime_id = anime_id_map.get(selected_title)
-        if anime_id:
-            image_url, synopsis, genres, type_, episodes, year = get_anime_details_cached(anime_id)
-            tampilkan_gambar_anime(image_url, selected_title)
-            st.markdown(f"**🎮 Tipe:** `{type_}`")
-            st.markdown(f"**📺 Total Episode:** `{episodes}`")
-            st.markdown(f"**🗓️ Tahun Rilis:** `{year}`")
-            st.markdown(f"**🎭 Genre:** {genres}")
-            with st.expander("📓 Sinopsis"):
-                st.markdown(synopsis)
-    else:
-        st.warning("Anime tidak ditemukan.")
 
