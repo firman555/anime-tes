@@ -151,8 +151,8 @@ if search_query:
             """, unsafe_allow_html=True)
             with st.expander("📓 Sinopsis"):
                 st.markdown(synopsis)
-      else:
-        st.warning("Tidak ditemukan anime yang cocok.")
+    else:
+        st.warning("Tidak ditemukan anime yang cocok. Coba ketik sebagian nama atau periksa ejaan.")
 
 # LEADERBOARD TOP 5
 
