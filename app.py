@@ -131,8 +131,8 @@ st.markdown("## 🔍 Cari Anime Manual")
 search_query = st.text_input("Ketik nama anime:")
 
 if search_query:
-    matching_titles = [title for title in anime["name"] if search_query.lower() in title.lower()]
-    if matching_titles:
+    matches = process.extract(search_query, anime["name"].tolist(), limit=10, score_cutoff=60)
+    matching_titles = [match[0] for match in matches]
         selected_title = st.selectbox("Pilih anime yang dimaksud:", matching_titles)
         anime_id = anime_id_map.get(selected_title)
         if anime_id:
