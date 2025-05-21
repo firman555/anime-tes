@@ -136,7 +136,7 @@ if search_query:
         anime_id = anime_id_map.get(selected_title)
         if anime_id:
             image_url, synopsis, genres, type_, episodes, year = get_anime_details_cached(anime_id)
-            st.markdown("""
+            st.markdown(f"""
                 <div style='text-align: center;'>
                     <img src='{image_url if image_url else "https://via.placeholder.com/200x300?text=No+Image"}'
                          style='height: 300px; object-fit: cover; border-radius: 10px;'>
