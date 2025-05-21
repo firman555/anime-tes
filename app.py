@@ -123,11 +123,7 @@ with st.spinner("🔄 Memuat data..."):
     model = train_model(matrix)
     anime_id_map = dict(zip(anime['name'], anime['anime_id']))
 
-(kode sebelum leaderboard tetap sama)
 
-# ================================
-# PENCARIAN MANUAL ANIME (PINDAH KE ATAS)
-# ================================
 st.markdown("## 🔍 Cari Anime Manual")
 
 search_query = st.text_input("Ketik nama anime:")
