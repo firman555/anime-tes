@@ -171,9 +171,42 @@ for i, row in enumerate(top5_df.itertuples()):
         st.markdown(f"📺 **Total Episode:** `{episodes}`")
         st.markdown(f"🗓️ **Tahun Rilis:** `{year}`")
         
+# ================================
+# ANIME TERBARU MUSIM INI
+# ================================
+st.markdown("## 🆕 Anime Terbaru Musim Ini")
+
+@st.cache_data(show_spinner=False)
+def get_anime_terbaru():
+    try:
+        response = requests.get("https://api.jikan.moe/v4/seasons/now", timeout=10)
+        if response.status_code == 200:
+            return response.json()["data"][:10]  # ambil 10 teratas
+    except Exception as e:
+        print(f"[ERROR] Ambil anime terbaru: {e}")
+    return []
+
+terbaru_list = get_anime_terbaru()
+
+cols = st.columns(5)
+for i, anime in enumerate(terbaru_list):
+    with cols[i % 5]:
+        name = anime.get("title", "Tanpa Judul")
+        image_url = anime["images"]["jpg"].get("image_url", "")
+        type_ = anime.get("type", "-")
+        episodes = anime.get("episodes", "?")
+        year = anime.get("year", "-")
+        genres = ", ".join([g["name"] for g in anime.get("genres", [])])
+        st.markdown(f"""
+            <div style='text-align: center;'>
+                <img src='{image_url}' style='height: 300px; object-fit: cover; border-radius: 10px;'>
+                <p style='margin-top: 6px; font-weight: bold;'>{name}</p>
+                <p>🎮 {type_} | 📺 {episodes} eps<br>🗓️ {year}<br>🎭 {genres}</p>
+            </div>
+        """, unsafe_allow_html=True)
+
 
 # REKOMENDASI BERDASARKAN GENRE
-
 
 st.markdown("## 🎬 Rekomendasi Berdasarkan Genre")
 selected_genre = st.selectbox("Pilih genre favoritmu:", AVAILABLE_GENRES)
@@ -260,37 +293,3 @@ if st.session_state.history:
 
     if st.button("🧹 Hapus Riwayat"):
         st.session_state.history = []
-
-# ================================
-# ANIME TERBARU MUSIM INI
-# ================================
-st.markdown("## 🆕 Anime Terbaru Musim Ini")
-
-@st.cache_data(show_spinner=False)
-def get_anime_terbaru():
-    try:
-        response = requests.get("https://api.jikan.moe/v4/seasons/now", timeout=10)
-        if response.status_code == 200:
-            return response.json()["data"][:10]  # ambil 10 teratas
-    except Exception as e:
-        print(f"[ERROR] Ambil anime terbaru: {e}")
-    return []
-
-terbaru_list = get_anime_terbaru()
-
-cols = st.columns(5)
-for i, anime in enumerate(terbaru_list):
-    with cols[i % 5]:
-        name = anime.get("title", "Tanpa Judul")
-        image_url = anime["images"]["jpg"].get("image_url", "")
-        type_ = anime.get("type", "-")
-        episodes = anime.get("episodes", "?")
-        year = anime.get("year", "-")
-        genres = ", ".join([g["name"] for g in anime.get("genres", [])])
-        st.markdown(f"""
-            <div style='text-align: center;'>
-                <img src='{image_url}' style='height: 300px; object-fit: cover; border-radius: 10px;'>
-                <p style='margin-top: 6px; font-weight: bold;'>{name}</p>
-                <p>🎮 {type_} | 📺 {episodes} eps<br>🗓️ {year}<br>🎭 {genres}</p>
-            </div>
-        """, unsafe_allow_html=True)
