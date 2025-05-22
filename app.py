@@ -213,7 +213,7 @@ if st.button("🌟 Tampilkan Anime Genre Ini"):
     else:
         st.info("Tidak ada anime ditemukan untuk genre ini.")
 
-st.markdown("## 🎮 Pilih Anime Favorit Kamu")
+st.markdown("## 🎮 Rekomendasi Berdasarkan Anime Favorit Kamu")
 anime_list = list(matrix.index)
 selected_anime = st.selectbox("Pilih anime yang kamu suka:", anime_list)
 
