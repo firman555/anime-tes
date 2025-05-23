@@ -1,4 +1,6 @@
-
+# ================================
+# IMPORT LIBRARY & KONFIGURASI AWAL
+# ================================
 import streamlit as st
 import pandas as pd
 import os
@@ -20,6 +22,9 @@ AVAILABLE_GENRES = [
     "Romance", "Sci-Fi", "Slice of Life", "Supernatural", "Sports", "Thriller"
 ]
 
+# ================================
+# FUNGSI TAMPILAN GAMBAR ANIME
+# ================================
 def tampilkan_gambar_anime(image_url, caption):
     st.markdown(
         f"""
@@ -32,6 +37,10 @@ def tampilkan_gambar_anime(image_url, caption):
         unsafe_allow_html=True
     )
 
+
+# ================================
+# FUNGSI LOAD DATA DARI GOOGLE DRIVE
+# ================================
 @st.cache_data
 def download_and_load_csv(file_id, filename):
     output = f"/tmp/{filename}"
@@ -43,7 +52,6 @@ def download_and_load_csv(file_id, filename):
 def load_data():
     anime_file_id = "1rKuccpP1bsiRxozgHZAaruTeDUidRwcz"
     rating_file_id = "1bSK2RJN23du0LR1K5HdCGsp8bWckVWQn"
-
     anime = download_and_load_csv(anime_file_id, "anime.csv")
     anime.columns = anime.columns.str.strip().str.lower()
     anime = anime[["anime_id", "name"]].dropna().drop_duplicates(subset="name")
@@ -55,6 +63,9 @@ def load_data():
     data = ratings.merge(anime, on="anime_id")
     return anime, data
 
+# ================================
+# PERSIAPAN MATRIX DAN MODEL KNN
+# ================================
 @st.cache_data
 def prepare_matrix(data, num_users=5500, num_anime=5000):
     top_users = data['user_id'].value_counts().head(num_users).index
@@ -69,6 +80,9 @@ def train_model(matrix):
     model.fit(csr_matrix(matrix.values))
     return model
 
+# ================================
+# REKOMENDASI BERDASARKAN SIMILARITAS
+# ================================
 def get_recommendations(title, matrix, model, n=5):
     if title not in matrix.index:
         return []
@@ -76,6 +90,10 @@ def get_recommendations(title, matrix, model, n=5):
     dists, idxs = model.kneighbors(matrix.iloc[idx, :].values.reshape(1, -1), n_neighbors=n+1)
     return [(matrix.index[i], 1 - dists.flatten()[j]) for j, i in enumerate(idxs.flatten()[1:])]
 
+
+# ================================
+# API JIKAN - DETAIL ANIME & GENRE
+# ================================
 @st.cache_data(show_spinner=False)
 def get_anime_details_cached(anime_id):
     try:
@@ -112,6 +130,9 @@ def get_genres_by_id(anime_id):
         print(f"[ERROR genre] ID {anime_id}: {e}")
     return []
 
+# ================================
+# TOP 5 ANIME BERDASARKAN RATING
+# ================================
 @st.cache_data
 def get_top_5_anime(data):
     grouped = data.groupby("name").agg(
@@ -121,6 +142,9 @@ def get_top_5_anime(data):
     top_anime = grouped[grouped["num_ratings"] > 10].sort_values(by="avg_rating", ascending=False).head(5)
     return top_anime
 
+# ================================
+# API JIKAN - ANIME TERBARU & TRENDING
+# ================================
 @st.cache_data(show_spinner=False)
 def get_latest_anime(n=10):
     try:
@@ -173,7 +197,10 @@ def get_trending_anime(n=10):
         print(f"[ERROR trending] {e}")
     return []
 
-# Load Data dan Model
+
+# ================================
+# LOAD DATA DAN TRAIN MODEL
+# ================================
 with st.spinner("🔄 Memuat data..."):
     anime, data = load_data()
     matrix = prepare_matrix(data)
@@ -223,6 +250,7 @@ else:
     st.info("Tidak dapat memuat anime trending saat ini.")
 
 
+
 # ================================
 # REKOMENDASI BERDASARKAN GENRE
 # ================================
@@ -234,48 +262,45 @@ if st.button("🌟 Tampilkan Anime Genre Ini"):
         st.warning("Silakan pilih setidaknya satu genre.")
     else:
         st.subheader(f"📚 Rekomendasi Anime dengan Genre: {', '.join(selected_genres)}")
-    anime_ratings = data.groupby("anime_id").agg(
-        avg_rating=("rating", "mean"),
-        num_ratings=("rating", "count")
-    ).reset_index()
-    top_candidates = anime_ratings[anime_ratings["num_ratings"] > 10].sort_values(by="avg_rating", ascending=False)
+        anime_ratings = data.groupby("anime_id").agg(
+            avg_rating=("rating", "mean"),
+            num_ratings=("rating", "count")
+        ).reset_index()
+        top_candidates = anime_ratings[anime_ratings["num_ratings"] > 10].sort_values(by="avg_rating", ascending=False)
 
-    results = []
-    for row in top_candidates.itertuples():
-        genres = get_genres_by_id(row.anime_id)
-        if any(genre in genres for genre in selected_genres):
-            results.append((row.anime_id, row.avg_rating, row.num_ratings))
-        if len(results) >= 10:
-            break
+        results = []
+        for row in top_candidates.itertuples():
+            genres = get_genres_by_id(row.anime_id)
+            if any(genre in genres for genre in selected_genres):
+                results.append((row.anime_id, row.avg_rating, row.num_ratings))
+            if len(results) >= 10:
+                break
 
-    if results:
-        col_rows = [st.columns(5), st.columns(5)]
-        for i, (anime_id, rating, num_votes) in enumerate(results):
-            row = 0 if i < 5 else 1
-            col = col_rows[row][i % 5]
-            with col:
-                anime_id_column = next((col for col in anime.columns if col.strip().lower() == 'anime_id'), None)
-                name_column = next((col for col in anime.columns if col.strip().lower() == 'name'), None)
-                if anime_id_column and name_column:
-                    name_row = anime[anime[anime_id_column] == anime_id]
-                    name = name_row[name_column].values[0] if not name_row.empty else "Judul Tidak Diketahui"
-                else:
-                    name = "Judul Tidak Diketahui"
-                image_url, synopsis, _, type_, episodes, year = get_anime_details_cached(anime_id)
-                tampilkan_gambar_anime(image_url, name)
-                st.markdown(f"⭐ Rating: `{rating:.2f}`")
-                st.markdown(f"👥 Jumlah Rating: `{num_votes}`")
-                st.markdown(f"🎮 Tipe: `{type_}`")
-                st.markdown(f"📺 Total Episode: `{episodes}`")
-                st.markdown(f"🗓️ Tahun Rilis: `{year}`")
-                with st.expander("📓 Lihat Sinopsis"):
-                    st.markdown(synopsis)
-
-    else:
-        st.info("Tidak ada anime ditemukan untuk genre ini.")
+        if results:
+            col_rows = [st.columns(5), st.columns(5)]
+            for i, (anime_id, rating, num_votes) in enumerate(results):
+                row = 0 if i < 5 else 1
+                col = col_rows[row][i % 5]
+                with col:
+                    name_row = anime[anime['anime_id'] == anime_id]
+                    name = name_row['name'].values[0] if not name_row.empty else "Judul Tidak Diketahui"
+                    image_url, synopsis, _, type_, episodes, year = get_anime_details_cached(anime_id)
+                    tampilkan_gambar_anime(image_url, name)
+                    st.markdown(f"⭐ Rating: `{rating:.2f}`")
+                    st.markdown(f"👥 Jumlah Rating: `{num_votes}`")
+                    st.markdown(f"🎮 Tipe: `{type_}`")
+                    st.markdown(f"📺 Total Episode: `{episodes}`")
+                    st.markdown(f"🗓️ Tahun Rilis: `{year}`")
+                    with st.expander("📓 Lihat Sinopsis"):
+                        st.markdown(synopsis)
+        else:
+            st.info("Tidak ada anime ditemukan untuk genre ini.")
 
 
 
+# ================================
+# REKOMENDASI BERDASARKAN ANIME FAVORIT
+# ================================
 st.markdown("## 🎮 Rekomendasi Berdasarkan Anime Favorit Kamu")
 anime_list = list(matrix.index)
 selected_anime = st.selectbox("Pilih anime yang kamu suka:", anime_list)
@@ -305,7 +330,7 @@ if st.button("🔍 Tampilkan Rekomendasi"):
                 st.markdown(synopsis)
 
 # ================================
-# RIWAYAT
+# RIWAYAT PILIHAN ANIME USER
 # ================================
 if st.session_state.history:
     st.markdown("### 🕒 Riwayat Anime yang Kamu Pilih:")
@@ -323,3 +348,4 @@ if st.session_state.history:
 
     if st.button("🧹 Hapus Riwayat"):
         st.session_state.history = []
+
