@@ -212,11 +212,13 @@ if st.button("🌟 Tampilkan Anime Genre Ini"):
                 tampilkan_gambar_anime(image_url, name)
                 st.markdown(f"""
                     <div style='text-align:center;'>
-                st.markdown(f"⭐ Rating: `{rating:.2f}`")
-                st.markdown(f"👥 Jumlah Rating: `{num_votes}`")
-                st.markdown(f"🎮 Tipe: `{type_}`")
-                st.markdown(f"📺 Total Episode: `{episodes}`")
-                st.markdown(f"🗓️ Tahun Rilis: `{year}`")
+                        ⭐ Rating: {rating:.2f}<br>
+                        👥 Jumlah Rating: {num_votes}<br>
+                        🎮 {type_}<br>
+                        📺 {episodes} eps<br>
+                        🗓️ {year}
+                    </div>
+                """, unsafe_allow_html=True)
                 with st.expander("📓 Lihat Sinopsis"):
                     st.markdown(synopsis)
 
@@ -246,12 +248,14 @@ if st.button("🔍 Tampilkan Rekomendasi"):
             image_url, synopsis, genres, type_, episodes, year = get_anime_details_cached(anime_id) if anime_id else ("", "", "-", "-", "?", "-")
             tampilkan_gambar_anime(image_url, rec_title)
             st.markdown(f"""
-                    <div style='text-align:center;'>
-            st.markdown(f"*Genre:* {genres}")
-            st.markdown(f"🎮 Tipe: `{type_}`")
-            st.markdown(f"📺 Total Episode: `{episodes}`")
-            st.markdown(f"🗓️ Tahun Rilis: `{year}`")
-            st.markdown(f"🔗 Kemiripan: `{similarity:.2f}`")
+                <div style='text-align:center;'>
+                    🎭 {genres}<br>
+                    🎮 {type_}<br>
+                    📺 {episodes} eps<br>
+                    🗓️ {year}<br>
+                    🔗 Kemiripan: {similarity:.2f}
+                </div>
+            """, unsafe_allow_html=True)
             with st.expander("📓 Lihat Sinopsis"):
                 st.markdown(synopsis)
 
