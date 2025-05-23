@@ -9,7 +9,6 @@ from sklearn.neighbors import NearestNeighbors
 from scipy.sparse import csr_matrix
 import requests
 from deep_translator import GoogleTranslator
-import re
 import time
 
 st.set_page_config(page_title="🍜 Rekomendasi Anime", layout="wide")
@@ -22,9 +21,6 @@ AVAILABLE_GENRES = [
     "Romance", "Sci-Fi", "Slice of Life", "Supernatural", "Sports", "Thriller"
 ]
 
-# ================================
-# FUNGSI TAMPILAN GAMBAR ANIME
-# ================================
 def tampilkan_gambar_anime(image_url, caption):
     st.markdown(
         f"""
@@ -37,10 +33,6 @@ def tampilkan_gambar_anime(image_url, caption):
         unsafe_allow_html=True
     )
 
-
-# ================================
-# FUNGSI LOAD DATA DARI GOOGLE DRIVE
-# ================================
 @st.cache_data
 def download_and_load_csv(file_id, filename):
     output = f"/tmp/{filename}"
@@ -54,6 +46,10 @@ def load_data():
     rating_file_id = "1bSK2RJN23du0LR1K5HdCGsp8bWckVWQn"
     anime = download_and_load_csv(anime_file_id, "anime.csv")
     anime.columns = anime.columns.str.strip().str.lower()
+
+    if not {'anime_id', 'name'}.issubset(anime.columns):
+        raise ValueError("Kolom 'anime_id' atau 'name' tidak ditemukan pada anime.csv")
+
     anime = anime[["anime_id", "name"]].dropna().drop_duplicates(subset="name")
 
     ratings = download_and_load_csv(rating_file_id, "rating.csv")
@@ -63,9 +59,6 @@ def load_data():
     data = ratings.merge(anime, on="anime_id")
     return anime, data
 
-# ================================
-# PERSIAPAN MATRIX DAN MODEL KNN
-# ================================
 @st.cache_data
 def prepare_matrix(data, num_users=5500, num_anime=5000):
     top_users = data['user_id'].value_counts().head(num_users).index
@@ -80,9 +73,6 @@ def train_model(matrix):
     model.fit(csr_matrix(matrix.values))
     return model
 
-# ================================
-# REKOMENDASI BERDASARKAN SIMILARITAS
-# ================================
 def get_recommendations(title, matrix, model, n=5):
     if title not in matrix.index:
         return []
@@ -90,10 +80,6 @@ def get_recommendations(title, matrix, model, n=5):
     dists, idxs = model.kneighbors(matrix.iloc[idx, :].values.reshape(1, -1), n_neighbors=n+1)
     return [(matrix.index[i], 1 - dists.flatten()[j]) for j, i in enumerate(idxs.flatten()[1:])]
 
-
-# ================================
-# API JIKAN - DETAIL ANIME & GENRE
-# ================================
 @st.cache_data(show_spinner=False)
 def get_anime_details_cached(anime_id):
     try:
@@ -107,16 +93,10 @@ def get_anime_details_cached(anime_id):
             synopsis_id = GoogleTranslator(source='auto', target='id').translate(synopsis_en)
             type_ = data.get("type", "-")
             episodes = data.get("episodes", "?")
-            aired_from = data.get("aired", {}).get("from", None)
-            year = "-"
-            if aired_from:
-                try:
-                    year = pd.to_datetime(aired_from).year
-                except:
-                    pass
+            year = data.get("year", "-")
             return image, synopsis_id, genres, type_, episodes, year
-    except Exception as e:
-        print(f"[ERROR] ID {anime_id}: {e}")
+    except:
+        pass
     return "", "Sinopsis tidak tersedia.", "-", "-", "?", "-"
 
 @st.cache_data(show_spinner=False)
@@ -126,9 +106,16 @@ def get_genres_by_id(anime_id):
         response = requests.get(f"https://api.jikan.moe/v4/anime/{anime_id}", timeout=10)
         if response.status_code == 200 and response.json()["data"]:
             return [g["name"] for g in response.json()["data"].get("genres", [])]
-    except Exception as e:
-        print(f"[ERROR genre] ID {anime_id}: {e}")
+    except:
+        pass
     return []
+
+# ========== LOAD DATA ==========
+with st.spinner("🔄 Memuat data..."):
+    anime, data = load_data()
+    matrix = prepare_matrix(data)
+    model = train_model(matrix)
+    anime_id_map = dict(zip(anime['name'], anime['anime_id']))
 
 # ================================
 # TOP 5 ANIME BERDASARKAN RATING
@@ -251,10 +238,9 @@ else:
 
 
 
-# ================================
-# REKOMENDASI BERDASARKAN GENRE
-# ================================
-st.markdown("## 🎬 Rekomendasi Berdasarkan Genre")
+# ========== REKOMENDASI BERDASARKAN GENRE ==========
+
+st.subheader("🎬 Rekomendasi Berdasarkan Genre")
 selected_genres = st.multiselect("Pilih satu atau lebih genre favoritmu:", AVAILABLE_GENRES)
 
 if st.button("🌟 Tampilkan Anime Genre Ini"):
@@ -282,7 +268,7 @@ if st.button("🌟 Tampilkan Anime Genre Ini"):
                 row = 0 if i < 5 else 1
                 col = col_rows[row][i % 5]
                 with col:
-                    name_row = anime[anime['anime_id'] == anime_id]
+                    name_row = anime[anime['anime_id'] == anime_id] if 'anime_id' in anime.columns else pd.DataFrame()
                     name = name_row['name'].values[0] if not name_row.empty else "Judul Tidak Diketahui"
                     image_url, synopsis, _, type_, episodes, year = get_anime_details_cached(anime_id)
                     tampilkan_gambar_anime(image_url, name)
@@ -295,7 +281,6 @@ if st.button("🌟 Tampilkan Anime Genre Ini"):
                         st.markdown(synopsis)
         else:
             st.info("Tidak ada anime ditemukan untuk genre ini.")
-
 
 
 # ================================
