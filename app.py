@@ -183,7 +183,7 @@ with st.spinner("🔄 Memuat data..."):
 # ================================
 # ANIME TERBARU
 # ================================
-st.subheader("🆕 Anime Terbaru (Season Now)")
+st.subheader("🆕 Anime Terbaru")
 latest = get_latest_anime()
 if latest:
     col_rows = [st.columns(5), st.columns(5)]
