@@ -1,3 +1,4 @@
+
 # ================================
 # IMPORT LIBRARY & KONFIGURASI AWAL
 # ================================
@@ -12,7 +13,6 @@ from deep_translator import GoogleTranslator
 import time
 
 st.set_page_config(page_title="🍜 Rekomendasi Anime", layout="wide")
-
 st.markdown("<h1 style='text-align: center;'>🍜 Rekomendasi Anime</h1>", unsafe_allow_html=True)
 st.caption("Powered by K-Nearest Neighbors, Jikan API & Google Drive")
 
@@ -29,8 +29,7 @@ def tampilkan_gambar_anime(image_url, caption):
                  style='height: 300px; object-fit: cover; border-radius: 10px;'>
             <p style='margin-top: 6px; font-weight: bold;'>{caption}</p>
         </div>
-        """,
-        unsafe_allow_html=True
+        """, unsafe_allow_html=True
     )
 
 @st.cache_data
@@ -46,16 +45,10 @@ def load_data():
     rating_file_id = "1bSK2RJN23du0LR1K5HdCGsp8bWckVWQn"
     anime = download_and_load_csv(anime_file_id, "anime.csv")
     anime.columns = anime.columns.str.strip().str.lower()
-
-    if not {'anime_id', 'name'}.issubset(anime.columns):
-        raise ValueError("Kolom 'anime_id' atau 'name' tidak ditemukan pada anime.csv")
-
     anime = anime[["anime_id", "name"]].dropna().drop_duplicates(subset="name")
-
     ratings = download_and_load_csv(rating_file_id, "rating.csv")
     ratings.columns = ratings.columns.str.strip().str.lower()
     ratings = ratings[ratings["rating"] > 0]
-
     data = ratings.merge(anime, on="anime_id")
     return anime, data
 
@@ -117,129 +110,7 @@ with st.spinner("🔄 Memuat data..."):
     model = train_model(matrix)
     anime_id_map = dict(zip(anime['name'], anime['anime_id']))
 
-# ================================
-# TOP 5 ANIME BERDASARKAN RATING
-# ================================
-@st.cache_data
-def get_top_5_anime(data):
-    grouped = data.groupby("name").agg(
-        avg_rating=("rating", "mean"),
-        num_ratings=("rating", "count")
-    ).reset_index()
-    top_anime = grouped[grouped["num_ratings"] > 10].sort_values(by="avg_rating", ascending=False).head(5)
-    return top_anime
-
-# ================================
-# API JIKAN - ANIME TERBARU & TRENDING
-# ================================
-@st.cache_data(show_spinner=False)
-def get_latest_anime(n=10):
-    try:
-        response = requests.get("https://api.jikan.moe/v4/seasons/now", timeout=10)
-        if response.status_code == 200:
-            results = []
-            for anime in response.json()["data"][:n]:
-                anime_id = anime["mal_id"]
-                title = anime["title"]
-                image = anime["images"]["jpg"].get("image_url", "")
-                synopsis_en = anime.get("synopsis", "Sinopsis tidak tersedia.")
-                synopsis_id = GoogleTranslator(source='auto', target='id').translate(synopsis_en)
-                genres = ", ".join([g["name"] for g in anime.get("genres", [])])
-                type_ = anime.get("type", "-")
-                episodes = anime.get("episodes", "?")
-                year = anime.get("year", "-")
-                results.append({
-                    "id": anime_id, "title": title, "image": image,
-                    "synopsis": synopsis_id, "genres": genres,
-                    "type": type_, "episodes": episodes, "year": year
-                })
-            return results
-    except Exception as e:
-        print(f"[ERROR latest] {e}")
-    return []
-
-@st.cache_data(show_spinner=False)
-def get_trending_anime(n=10):
-    try:
-        response = requests.get("https://api.jikan.moe/v4/top/anime?filter=bypopularity", timeout=10)
-        if response.status_code == 200:
-            results = []
-            for anime in response.json()["data"][:n]:
-                anime_id = anime["mal_id"]
-                title = anime["title"]
-                image = anime["images"]["jpg"].get("image_url", "")
-                synopsis_en = anime.get("synopsis", "Sinopsis tidak tersedia.")
-                synopsis_id = GoogleTranslator(source='auto', target='id').translate(synopsis_en)
-                genres = ", ".join([g["name"] for g in anime.get("genres", [])])
-                type_ = anime.get("type", "-")
-                episodes = anime.get("episodes", "?")
-                year = anime.get("year", "-")
-                results.append({
-                    "id": anime_id, "title": title, "image": image,
-                    "synopsis": synopsis_id, "genres": genres,
-                    "type": type_, "episodes": episodes, "year": year
-                })
-            return results
-    except Exception as e:
-        print(f"[ERROR trending] {e}")
-    return []
-
-
-# ================================
-# LOAD DATA DAN TRAIN MODEL
-# ================================
-with st.spinner("🔄 Memuat data..."):
-    anime, data = load_data()
-    matrix = prepare_matrix(data)
-    model = train_model(matrix)
-    anime_id_map = dict(zip(anime['name'], anime['anime_id']))
-
-# ================================
-# ANIME TERBARU
-# ================================
-st.subheader("🆕 Anime Terbaru")
-latest = get_latest_anime()
-if latest:
-    col_rows = [st.columns(5), st.columns(5)]
-    for i, anime in enumerate(latest):
-        row = 0 if i < 5 else 1
-        col = col_rows[row][i % 5]
-        with col:
-            tampilkan_gambar_anime(anime["image"], anime["title"])
-            st.markdown(f"🎭 Genre: {anime['genres']}")
-            st.markdown(f"🎮 Tipe: `{anime['type']}`")
-            st.markdown(f"📺 Episode: `{anime['episodes']}`")
-            st.markdown(f"🗓️ Tahun Rilis: `{anime['year']}`")
-            with st.expander("📓 Lihat Sinopsis"):
-                st.markdown(anime["synopsis"])
-else:
-    st.info("Tidak dapat memuat anime terbaru.")
-
-# ================================
-# ANIME TRENDING
-# ================================
-st.subheader("🔥 Anime Trending")
-trending = get_trending_anime()
-if trending:
-    col_rows = [st.columns(5), st.columns(5)]
-    for i, anime in enumerate(trending):
-        row = 0 if i < 5 else 1
-        col = col_rows[row][i % 5]
-        with col:
-            tampilkan_gambar_anime(anime["image"], anime["title"])
-            st.markdown(f"🎭 Genre: {anime['genres']}")
-            st.markdown(f"🎮 Tipe: `{anime['type']}`")
-            st.markdown(f"📺 Episode: `{anime['episodes']}`")
-            st.markdown(f"🗓️ Tahun Rilis: `{anime['year']}`")
-            with st.expander("📓 Lihat Sinopsis"):
-                st.markdown(anime["synopsis"])
-else:
-    st.info("Tidak dapat memuat anime trending saat ini.")
-
-
-
 # ========== REKOMENDASI BERDASARKAN GENRE ==========
-
 st.subheader("🎬 Rekomendasi Berdasarkan Genre")
 selected_genres = st.multiselect("Pilih satu atau lebih genre favoritmu:", AVAILABLE_GENRES)
 
@@ -268,8 +139,12 @@ if st.button("🌟 Tampilkan Anime Genre Ini"):
                 row = 0 if i < 5 else 1
                 col = col_rows[row][i % 5]
                 with col:
-                    name_row = anime[anime['anime_id'] == anime_id] if 'anime_id' in anime.columns else pd.DataFrame()
-                    name = name_row['name'].values[0] if not name_row.empty else "Judul Tidak Diketahui"
+                    try:
+                        name_row = anime[anime['anime_id'] == anime_id]
+                        name = name_row['name'].values[0] if not name_row.empty else "Judul Tidak Diketahui"
+                    except Exception as e:
+                        st.error(f"❌ Error mengambil nama anime: {e}")
+                        name = "Tidak diketahui"
                     image_url, synopsis, _, type_, episodes, year = get_anime_details_cached(anime_id)
                     tampilkan_gambar_anime(image_url, name)
                     st.markdown(f"⭐ Rating: `{rating:.2f}`")
@@ -281,7 +156,6 @@ if st.button("🌟 Tampilkan Anime Genre Ini"):
                         st.markdown(synopsis)
         else:
             st.info("Tidak ada anime ditemukan untuk genre ini.")
-
 
 # ================================
 # REKOMENDASI BERDASARKAN ANIME FAVORIT
@@ -333,4 +207,3 @@ if st.session_state.history:
 
     if st.button("🧹 Hapus Riwayat"):
         st.session_state.history = []
-
