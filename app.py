@@ -180,10 +180,13 @@ else:
 # REKOMENDASI BERDASARKAN GENRE
 # ================================
 st.markdown("## 🎬 Rekomendasi Berdasarkan Genre")
-selected_genre = st.selectbox("Pilih genre favoritmu:", AVAILABLE_GENRES)
+selected_genres = st.multiselect("Pilih satu atau lebih genre favoritmu:", AVAILABLE_GENRES)
 
 if st.button("🌟 Tampilkan Anime Genre Ini"):
-    st.subheader(f"📚 Rekomendasi Anime dengan Genre: {selected_genre}")
+    if not selected_genres:
+        st.warning("Silakan pilih setidaknya satu genre.")
+    else:
+        st.subheader(f"📚 Rekomendasi Anime dengan Genre: {', '.join(selected_genres)}")
     anime_ratings = data.groupby("anime_id").agg(
         avg_rating=("rating", "mean"),
         num_ratings=("rating", "count")
@@ -193,7 +196,7 @@ if st.button("🌟 Tampilkan Anime Genre Ini"):
     results = []
     for row in top_candidates.itertuples():
         genres = get_genres_by_id(row.anime_id)
-        if selected_genre in genres:
+        if any(genre in genres for genre in selected_genres):
             results.append((row.anime_id, row.avg_rating, row.num_ratings))
         if len(results) >= 10:
             break
@@ -223,6 +226,8 @@ if st.button("🌟 Tampilkan Anime Genre Ini"):
 
     else:
         st.info("Tidak ada anime ditemukan untuk genre ini.")
+
+
 
 st.markdown("## 🎮 Rekomendasi Berdasarkan Anime Favorit Kamu")
 anime_list = list(matrix.index)
