@@ -204,7 +204,7 @@ else:
 # ================================
 # ANIME TRENDING
 # ================================
-st.subheader("🔥 Anime Trending Saat Ini")
+st.subheader("🔥 Anime Trending")
 trending = get_trending_anime()
 if trending:
     col_rows = [st.columns(5), st.columns(5)]
