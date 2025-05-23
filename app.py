@@ -167,14 +167,10 @@ if latest:
         col = col_rows[row][i % 5]
         with col:
             tampilkan_gambar_anime(anime_item["image"], anime_item["title"])
-            st.markdown(f"""
-                <div style='text-align:center;'>
-                    🎭 {anime_item['genres']}<br><br>
-                    🎮 {anime_item['type']}<br><br>
-                    📺 {anime_item['episodes']} eps<br><br>
-                    🗓️ {anime_item['year']}
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"🎭 Genre: {anime_item['genres']}")
+            st.markdown(f"🎮 Tipe: `{anime_item['type']}`")
+            st.markdown(f"📺 Episode: `{anime_item['episodes']}`")
+            st.markdown(f"🗓️ Tahun Rilis: `{anime_item['year']}`")
             with st.expander("📓 Lihat Sinopsis"):
                 st.markdown(anime_item["synopsis"])
 else:
@@ -217,22 +213,16 @@ if st.button("🌟 Tampilkan Anime Genre Ini"):
                     name = "Judul Tidak Diketahui"
                 image_url, synopsis, _, type_, episodes, year = get_anime_details_cached(anime_id)
                 tampilkan_gambar_anime(image_url, name)
-                st.markdown(f"""
-                    <div style='text-align:center;'>
-                        ⭐ Rating: {rating:.2f}<br>
-                        👥 Jumlah Rating: {num_votes}<br>
-                        🎮 {type_}<br>
-                        📺 {episodes} eps<br>
-                        🗓️ {year}
-                    </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f"⭐ Rating: `{rating:.2f}`")
+                st.markdown(f"👥 Jumlah Rating: `{num_votes}`")
+                st.markdown(f"🎮 Tipe: `{type_}`")
+                st.markdown(f"📺 Total Episode: `{episodes}`")
+                st.markdown(f"🗓️ Tahun Rilis: `{year}`")
                 with st.expander("📓 Lihat Sinopsis"):
                     st.markdown(synopsis)
 
     else:
         st.info("Tidak ada anime ditemukan untuk genre ini.")
-
-# REKOMENDASI ANIME
 
 st.markdown("## 🎮 Rekomendasi Berdasarkan Anime Favorit Kamu")
 anime_list = list(matrix.index)
@@ -254,15 +244,11 @@ if st.button("🔍 Tampilkan Rekomendasi"):
             anime_id = anime_id_map.get(rec_title)
             image_url, synopsis, genres, type_, episodes, year = get_anime_details_cached(anime_id) if anime_id else ("", "", "-", "-", "?", "-")
             tampilkan_gambar_anime(image_url, rec_title)
-            st.markdown(f"""
-                <div style='text-align:center;'>
-                    🎭 {genres}<br>
-                    🎮 {type_}<br>
-                    📺 {episodes} eps<br>
-                    🗓️ {year}<br>
-                    🔗 Kemiripan: {similarity:.2f}
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"*Genre:* {genres}")
+            st.markdown(f"🎮 Tipe: `{type_}`")
+            st.markdown(f"📺 Total Episode: `{episodes}`")
+            st.markdown(f"🗓️ Tahun Rilis: `{year}`")
+            st.markdown(f"🔗 Kemiripan: `{similarity:.2f}`")
             with st.expander("📓 Lihat Sinopsis"):
                 st.markdown(synopsis)
 
