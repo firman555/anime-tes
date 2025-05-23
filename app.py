@@ -167,7 +167,14 @@ if latest:
         col = col_rows[row][i % 5]
         with col:
             tampilkan_gambar_anime(anime_item["image"], anime_item["title"])
-            st.markdown(f"<div style='text-align:center;'>🎭 {anime_item['genres']}<br>🎮 {anime_item['type']}<br>📺 {anime_item['episodes']} eps<br>🗓️ {anime_item['year']}</div>", unsafe_allow_html=True)
+            st.markdown(f"""
+                <div style='text-align:center;'>
+                    🎭 {anime_item['genres']}<br><br>
+                    🎮 {anime_item['type']}<br><br>
+                    📺 {anime_item['episodes']} eps<br><br>
+                    🗓️ {anime_item['year']}
+                </div>
+            """, unsafe_allow_html=True)
             with st.expander("📓 Lihat Sinopsis"):
                 st.markdown(anime_item["synopsis"])
 else:
