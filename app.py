@@ -1,5 +1,4 @@
 
-
 import streamlit as st
 import pandas as pd
 import os
@@ -10,7 +9,6 @@ import requests
 from deep_translator import GoogleTranslator
 import re
 import time
-from rapidfuzz import process
 
 st.set_page_config(page_title="🍜 Rekomendasi Anime", layout="wide")
 
@@ -45,7 +43,7 @@ def download_and_load_csv(file_id, filename):
 def load_data():
     anime_file_id = "1rKuccpP1bsiRxozgHZAaruTeDUidRwcz"
     rating_file_id = "1bSK2RJN23du0LR1K5HdCGsp8bWckVWQn"
-    
+
     anime = download_and_load_csv(anime_file_id, "anime.csv")
     anime.columns = anime.columns.str.strip().str.lower()
     anime = anime[["anime_id", "name"]].dropna().drop_duplicates(subset="name")
@@ -149,6 +147,33 @@ def get_latest_anime(n=10):
         print(f"[ERROR latest] {e}")
     return []
 
+@st.cache_data(show_spinner=False)
+def get_trending_anime(n=10):
+    try:
+        response = requests.get("https://api.jikan.moe/v4/top/anime?filter=bypopularity", timeout=10)
+        if response.status_code == 200:
+            results = []
+            for anime in response.json()["data"][:n]:
+                anime_id = anime["mal_id"]
+                title = anime["title"]
+                image = anime["images"]["jpg"].get("image_url", "")
+                synopsis_en = anime.get("synopsis", "Sinopsis tidak tersedia.")
+                synopsis_id = GoogleTranslator(source='auto', target='id').translate(synopsis_en)
+                genres = ", ".join([g["name"] for g in anime.get("genres", [])])
+                type_ = anime.get("type", "-")
+                episodes = anime.get("episodes", "?")
+                year = anime.get("year", "-")
+                results.append({
+                    "id": anime_id, "title": title, "image": image,
+                    "synopsis": synopsis_id, "genres": genres,
+                    "type": type_, "episodes": episodes, "year": year
+                })
+            return results
+    except Exception as e:
+        print(f"[ERROR trending] {e}")
+    return []
+
+# Load Data dan Model
 with st.spinner("🔄 Memuat data..."):
     anime, data = load_data()
     matrix = prepare_matrix(data)
@@ -162,19 +187,41 @@ st.subheader("🆕 Anime Terbaru (Season Now)")
 latest = get_latest_anime()
 if latest:
     col_rows = [st.columns(5), st.columns(5)]
-    for i, anime_item in enumerate(latest):
+    for i, anime in enumerate(latest):
         row = 0 if i < 5 else 1
         col = col_rows[row][i % 5]
         with col:
-            tampilkan_gambar_anime(anime_item["image"], anime_item["title"])
-            st.markdown(f"🎭 Genre: {anime_item['genres']}")
-            st.markdown(f"🎮 Tipe: `{anime_item['type']}`")
-            st.markdown(f"📺 Episode: `{anime_item['episodes']}`")
-            st.markdown(f"🗓️ Tahun Rilis: `{anime_item['year']}`")
+            tampilkan_gambar_anime(anime["image"], anime["title"])
+            st.markdown(f"🎭 Genre: {anime['genres']}")
+            st.markdown(f"🎮 Tipe: `{anime['type']}`")
+            st.markdown(f"📺 Episode: `{anime['episodes']}`")
+            st.markdown(f"🗓️ Tahun Rilis: `{anime['year']}`")
             with st.expander("📓 Lihat Sinopsis"):
-                st.markdown(anime_item["synopsis"])
+                st.markdown(anime["synopsis"])
 else:
     st.info("Tidak dapat memuat anime terbaru.")
+
+# ================================
+# ANIME TRENDING
+# ================================
+st.subheader("🔥 Anime Trending Saat Ini")
+trending = get_trending_anime()
+if trending:
+    col_rows = [st.columns(5), st.columns(5)]
+    for i, anime in enumerate(trending):
+        row = 0 if i < 5 else 1
+        col = col_rows[row][i % 5]
+        with col:
+            tampilkan_gambar_anime(anime["image"], anime["title"])
+            st.markdown(f"🎭 Genre: {anime['genres']}")
+            st.markdown(f"🎮 Tipe: `{anime['type']}`")
+            st.markdown(f"📺 Episode: `{anime['episodes']}`")
+            st.markdown(f"🗓️ Tahun Rilis: `{anime['year']}`")
+            with st.expander("📓 Lihat Sinopsis"):
+                st.markdown(anime["synopsis"])
+else:
+    st.info("Tidak dapat memuat anime trending saat ini.")
+
 
 # ================================
 # REKOMENDASI BERDASARKAN GENRE
