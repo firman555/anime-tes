@@ -12,7 +12,7 @@ import re
 import time
 from rapidfuzz import process
 
-st.set_page_config(page_title="🎌 Rekomendasi Anime", layout="wide")
+st.set_page_config(page_title="🎌 Rekomendasi Anime 🎌", layout="wide")
 
 st.markdown("<h1 style='text-align: center;'>🎌 Rekomendasi Anime</h1>", unsafe_allow_html=True)
 st.caption("Powered by K-Nearest Neighbors, Jikan API & Google Drive")
