@@ -12,9 +12,9 @@ import re
 import time
 from rapidfuzz import process
 
-st.set_page_config(page_title="🍜 Rekomendasi Anime", layout="wide")
+st.set_page_config(page_title="🎌 Rekomendasi Anime", layout="wide")
 
-st.markdown("<h1 style='text-align: center;'>🍜 Rekomendasi Anime</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>🎌 Rekomendasi Anime</h1>", unsafe_allow_html=True)
 st.caption("Powered by K-Nearest Neighbors, Jikan API & Google Drive")
 
 AVAILABLE_GENRES = [
@@ -225,7 +225,7 @@ if st.button("🌟 Tampilkan Anime Genre Ini"):
     else:
         st.info("Tidak ada anime ditemukan untuk genre ini.")
 
-st.markdown("## 🎮 Rekomendasi Berdasarkan Anime Favorit Kamu")
+st.markdown("## 🎏 Rekomendasi Berdasarkan Anime Favorit Kamu")
 anime_list = list(matrix.index)
 selected_anime = st.selectbox("Pilih anime yang kamu suka:", anime_list)
 
