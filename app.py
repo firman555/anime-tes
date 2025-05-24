@@ -307,9 +307,9 @@ def get_trending_anime(n=10):
 
 
 # ================================
-# ANIME TRENDING
+# ANIME TRENDING GLOBAL
 # ================================
-st.markdown("## 📈 Anime Trending Saat Ini")
+st.markdown("## 🌍 Anime Trending Global (Peringkat Teratas MyAnimeList)")
 
 trending = get_trending_anime(10)
 if trending:
@@ -326,4 +326,4 @@ if trending:
             with st.expander("📓 Lihat Sinopsis"):
                 st.markdown(anime["synopsis"])
 else:
-    st.info("Tidak dapat memuat anime trending.")
+    st.info("Tidak dapat memuat anime trending global.")
