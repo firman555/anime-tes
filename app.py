@@ -290,7 +290,11 @@ def get_trending_anime(n=10):
                 genres = ", ".join([g["name"] for g in anime.get("genres", [])])
                 type_ = anime.get("type", "-")
                 episodes = anime.get("episodes", "?")
-                year = anime.get("year", "-")
+                aired_from = anime.get("aired", {}).get("from", None)
+                try:
+                    year = pd.to_datetime(aired_from).year if aired_from else "-"
+                except:
+                    year = "-"
                 trending.append({
                     "id": anime_id, "title": title, "image": image,
                     "synopsis": synopsis_id, "genres": genres,
@@ -298,8 +302,9 @@ def get_trending_anime(n=10):
                 })
             return trending
     except Exception as e:
-        print(f"[ERROR trending] {e}")
+        print(f"[ERROR trending global] {e}")
     return []
+
 
 # ================================
 # ANIME TRENDING
