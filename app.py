@@ -271,3 +271,23 @@ if st.session_state.history:
 
     if st.button("🧹 Hapus Riwayat"):
         st.session_state.history = []
+
+# ================================
+# ANIME POPULER
+# ================================
+st.markdown("## 🔥 Anime Populer")
+
+popular_df = get_popular_anime(data, anime, top_n=10)
+cols = st.columns(5)
+
+for i, row in enumerate(popular_df.itertuples()):
+    col = cols[i % 5]
+    with col:
+        anime_id = row.anime_id
+        image_url, _, _, type_, episodes, year = get_anime_details_cached(anime_id)
+        tampilkan_gambar_anime(image_url, row.name)
+        st.markdown(f"⭐ Rating: `{row.avg_rating:.2f}`")
+        st.markdown(f"👥 Jumlah Rating: `{row.num_ratings}`")
+        st.markdown(f"🎮 Tipe: `{type_}`")
+        st.markdown(f"📺 Episode: `{episodes}`")
+        st.markdown(f"🗓️ Tahun Rilis: `{year}`")
