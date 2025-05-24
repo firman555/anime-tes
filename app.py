@@ -155,6 +155,18 @@ with st.spinner("🔄 Memuat data..."):
     model = train_model(matrix)
     anime_id_map = dict(zip(anime['name'], anime['anime_id']))
 
+@st.cache_data
+def get_popular_anime(data, anime, top_n=10):
+    popular = data.groupby("anime_id").agg(
+        avg_rating=("rating", "mean"),
+        num_ratings=("rating", "count")
+    ).reset_index().sort_values(by="num_ratings", ascending=False)
+
+    top_popular = popular.head(top_n)
+    merged = top_popular.merge(anime, on="anime_id", how="left")
+    return merged
+
+
 # ================================
 # ANIME TERBARU
 # ================================
