@@ -155,17 +155,6 @@ with st.spinner("🔄 Memuat data..."):
     model = train_model(matrix)
     anime_id_map = dict(zip(anime['name'], anime['anime_id']))
 
-@st.cache_data
-def get_popular_anime(data, anime, top_n=10):
-    popular = data.groupby("anime_id").agg(
-        avg_rating=("rating", "mean"),
-        num_ratings=("rating", "count")
-    ).reset_index().sort_values(by="num_ratings", ascending=False)
-
-    top_popular = popular.head(top_n)
-    merged = top_popular.merge(anime, on="anime_id", how="left")
-    return merged
-
 
 # ================================
 # ANIME TERBARU
@@ -284,22 +273,52 @@ if st.session_state.history:
     if st.button("🧹 Hapus Riwayat"):
         st.session_state.history = []
 
-# ================================
-# ANIME POPULER
-# ================================
-st.markdown("## 🔥 Anime Populer")
 
-popular_df = get_popular_anime(data, anime, top_n=10)
-cols = st.columns(5)
 
-for i, row in enumerate(popular_df.itertuples()):
-    col = cols[i % 5]
-    with col:
-        anime_id = row.anime_id
-        image_url, _, _, type_, episodes, year = get_anime_details_cached(anime_id)
-        tampilkan_gambar_anime(image_url, row.name)
-        st.markdown(f"⭐ Rating: `{row.avg_rating:.2f}`")
-        st.markdown(f"👥 Jumlah Rating: `{row.num_ratings}`")
-        st.markdown(f"🎮 Tipe: `{type_}`")
-        st.markdown(f"📺 Episode: `{episodes}`")
-        st.markdown(f"🗓️ Tahun Rilis: `{year}`")
+@st.cache_data(show_spinner=False)
+def get_trending_anime(n=10):
+    try:
+        response = requests.get("https://api.jikan.moe/v4/top/anime", timeout=10)
+        if response.status_code == 200:
+            trending = []
+            for anime in response.json()["data"][:n]:
+                anime_id = anime["mal_id"]
+                title = anime["title"]
+                image = anime["images"]["jpg"].get("image_url", "")
+                synopsis_en = anime.get("synopsis", "Sinopsis tidak tersedia.")
+                synopsis_id = GoogleTranslator(source='auto', target='id').translate(synopsis_en)
+                genres = ", ".join([g["name"] for g in anime.get("genres", [])])
+                type_ = anime.get("type", "-")
+                episodes = anime.get("episodes", "?")
+                year = anime.get("year", "-")
+                trending.append({
+                    "id": anime_id, "title": title, "image": image,
+                    "synopsis": synopsis_id, "genres": genres,
+                    "type": type_, "episodes": episodes, "year": year
+                })
+            return trending
+    except Exception as e:
+        print(f"[ERROR trending] {e}")
+    return []
+
+# ================================
+# ANIME TRENDING
+# ================================
+st.markdown("## 📈 Anime Trending Saat Ini")
+
+trending = get_trending_anime(10)
+if trending:
+    col_rows = [st.columns(5), st.columns(5)]
+    for i, anime in enumerate(trending):
+        row = 0 if i < 5 else 1
+        col = col_rows[row][i % 5]
+        with col:
+            tampilkan_gambar_anime(anime["image"], anime["title"])
+            st.markdown(f"🎭 Genre: {anime['genres']}")
+            st.markdown(f"🎮 Tipe: `{anime['type']}`")
+            st.markdown(f"📺 Episode: `{anime['episodes']}`")
+            st.markdown(f"🗓️ Tahun Rilis: `{anime['year']}`")
+            with st.expander("📓 Lihat Sinopsis"):
+                st.markdown(anime["synopsis"])
+else:
+    st.info("Tidak dapat memuat anime trending.")
