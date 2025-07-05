@@ -128,10 +128,15 @@ def get_latest_anime(n=10):
     try:
         response = requests.get("https://api.jikan.moe/v4/seasons/now", timeout=10)
         if response.status_code == 200:
+            seen_titles = set()
             results = []
-            for anime in response.json()["data"][:n]:
-                anime_id = anime["mal_id"]
+            for anime in response.json()["data"]:
                 title = anime["title"]
+                if title in seen_titles:
+                    continue  # skip duplikat
+                seen_titles.add(title)
+
+                anime_id = anime["mal_id"]
                 image = anime["images"]["jpg"].get("image_url", "")
                 synopsis_en = anime.get("synopsis", "Sinopsis tidak tersedia.")
                 synopsis_id = GoogleTranslator(source='auto', target='id').translate(synopsis_en)
@@ -139,15 +144,25 @@ def get_latest_anime(n=10):
                 type_ = anime.get("type", "-")
                 episodes = anime.get("episodes", "?")
                 year = anime.get("year", "-")
+
                 results.append({
-                    "id": anime_id, "title": title, "image": image,
-                    "synopsis": synopsis_id, "genres": genres,
-                    "type": type_, "episodes": episodes, "year": year
+                    "id": anime_id,
+                    "title": title,
+                    "image": image,
+                    "synopsis": synopsis_id,
+                    "genres": genres,
+                    "type": type_,
+                    "episodes": episodes,
+                    "year": year
                 })
+
+                if len(results) >= n:
+                    break
             return results
     except Exception as e:
         print(f"[ERROR latest] {e}")
     return []
+
 
 with st.spinner("🔄 Memuat data..."):
     anime, data = load_data()
