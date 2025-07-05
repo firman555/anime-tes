@@ -93,11 +93,6 @@ def get_anime_details_cached(anime_id):
             episodes = data.get("episodes", "?")
             aired_from = data.get("aired", {}).get("from", None)
             year = "-"
-            if len(translated) < 80:
-                extra_note = f" (Anime berjudul '{anime['title']}' saat ini sedang tayang. Lihat detail selengkapnya di MyAnimeList.)"
-                synopsis_id = translated + extra_note
-            else:
-            synopsis_id = translated
             if aired_from:
                 try:
                     year = pd.to_datetime(aired_from).year
