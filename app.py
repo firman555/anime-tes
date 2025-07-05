@@ -43,8 +43,8 @@ def download_and_load_csv(file_id, filename):
 
 @st.cache_data
 def load_data():
-    anime_file_id = "1rKuccpP1bsiRxozgHZAaruTeDUidRwcz"
-    rating_file_id = "1bSK2RJN23du0LR1K5HdCGsp8bWckVWQn"
+    anime_file_id = "1LrrYU103m7uPoWL8MYl4kOEE50kof7Fa"
+    rating_file_id = "1hDdjlWC5h45qPQNsuCakAd_1wr-q5q9L"
     
     anime = download_and_load_csv(anime_file_id, "anime.csv")
     anime.columns = anime.columns.str.strip().str.lower()
